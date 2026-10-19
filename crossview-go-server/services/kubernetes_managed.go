@@ -13,6 +13,9 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
+// managedItemsPerKind is the most managed resources listed for any one kind.
+const managedItemsPerKind = 5000
+
 type managedResourceTarget struct {
 	apiVersion string
 	kind       string
@@ -120,7 +123,7 @@ func (k *KubernetesService) fetchManagedResourceTarget(contextName string, targe
 	allItems := make([]interface{}, 0)
 	continueToken := ""
 	pageSize := int64(1000)
-	maxItems := int64(5000)
+	maxItems := int64(managedItemsPerKind)
 	itemCount := int64(0)
 
 	for {
