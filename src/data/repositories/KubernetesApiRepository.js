@@ -112,6 +112,15 @@ export class KubernetesApiRepository extends IKubernetesRepository {
     }
   }
 
+  async getGraph(context = null) {
+    try {
+      const params = context ? new URLSearchParams({ context }) : '';
+      return await this.request(`/graph${params ? `?${params}` : ''}`);
+    } catch (error) {
+      throw new Error(`Failed to get graph: ${error.message}`);
+    }
+  }
+
   async getResource(apiVersion, kind, name, namespace = null, context = null, plural = null) {
     try {
       const params = new URLSearchParams({ apiVersion, kind, name });
