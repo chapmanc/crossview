@@ -218,6 +218,18 @@ func (c *KubernetesController) GetManagedResources(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, result)
 }
 
+// GetGraph returns the dependency graph of Crossplane resources for the requested context.
+func (c *KubernetesController) GetGraph(ctx *gin.Context) {
+	graph, err := services.GetGraph(c.kubernetesService, ctx.Query("context"))
+	if err != nil {
+		c.logger.Errorf("Failed to build graph: %s", err.Error())
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, graph)
+}
+
 func (c *KubernetesController) AddKubeConfig(ctx *gin.Context) {
 	var request struct {
 		KubeConfig string `json:"kubeConfig"`
