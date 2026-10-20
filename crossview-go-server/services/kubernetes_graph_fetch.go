@@ -19,12 +19,15 @@ const (
 	GraphWarningManagedSkipped  = "managed-skipped"
 )
 
+// graphListConcurrency caps the XR kind lists in flight, so many XRDs do not flood the API server.
+const graphListConcurrency = 8
+
 // GraphOptions tunes what GetGraph fetches; the zero value fetches everything.
 type GraphOptions struct {
 	SkipManaged bool
 }
 
-// GetGraph lists the Crossplane objects with a handful of calls and builds the graph.
+// GetGraph lists XRDs, Compositions and Functions, then every XR kind and the managed resources.
 // Anything it could not list or only partly listed becomes a warning on the graph.
 func GetGraph(svc KubernetesServiceInterface, contextName string, opts GraphOptions) (Graph, error) {
 	lister := graphLister{svc: svc, contextName: contextName}
@@ -138,7 +141,7 @@ func joinSorted(values []string) string {
 	return strings.Join(values, ", ")
 }
 
-// listXRs lists the instances of every kind the XRDs define, one call per kind, in parallel.
+// listXRs lists the instances of every kind the XRDs define, one call per kind, a few at a time.
 // A kind that fails to list is reported as a warning, so one broken CRD does not hide the rest.
 func (l graphLister) listXRs(xrds []map[string]interface{}) ([]map[string]interface{}, []GraphWarning) {
 	var (
@@ -146,6 +149,7 @@ func (l graphLister) listXRs(xrds []map[string]interface{}) ([]map[string]interf
 		wg       sync.WaitGroup
 		xrs      []map[string]interface{}
 		warnings []GraphWarning
+		slots    = make(chan struct{}, graphListConcurrency)
 	)
 	for _, xrd := range xrds {
 		kind, ok := newXRKind(xrd)
@@ -153,8 +157,10 @@ func (l graphLister) listXRs(xrds []map[string]interface{}) ([]map[string]interf
 			continue
 		}
 		wg.Add(1)
+		slots <- struct{}{}
 		go func() {
 			defer wg.Done()
+			defer func() { <-slots }()
 			items, err := l.listKind(kind)
 			mu.Lock()
 			defer mu.Unlock()

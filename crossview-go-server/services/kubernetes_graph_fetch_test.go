@@ -7,7 +7,9 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"crossview-go-server/lib"
 )
@@ -204,5 +206,50 @@ func TestGetGraph_SkipManagedDoesNotListThem(t *testing.T) {
 	}
 	if codes := warningCodes(g); len(codes) != 1 || codes[0] != GraphWarningManagedSkipped {
 		t.Errorf("expected only the skipped warning, got %v", codes)
+	}
+}
+
+// slowKindService counts how many XR kind lists run at once.
+type slowKindService struct {
+	KubernetesServiceInterface
+	xrds           []map[string]interface{}
+	inFlight, peak atomic.Int32
+}
+
+func (s *slowKindService) GetResources(apiVersion, kind, namespace, contextName, plural string, limit *int64, continueToken string) (map[string]interface{}, error) {
+	if kind == "CompositeResourceDefinition" {
+		return listResult(s.xrds), nil
+	}
+	if kind == "Composition" || kind == "Function" {
+		return listResult(nil), nil
+	}
+	now := s.inFlight.Add(1)
+	defer s.inFlight.Add(-1)
+	for peak := s.peak.Load(); now > peak && !s.peak.CompareAndSwap(peak, now); peak = s.peak.Load() {
+	}
+	time.Sleep(5 * time.Millisecond)
+	return listResult(nil), nil
+}
+
+func (s *slowKindService) GetManagedResources(contextName string, forceRefresh bool) (map[string]interface{}, error) {
+	return listResult(nil), nil
+}
+
+func TestGetGraph_LimitsConcurrentKindLists(t *testing.T) {
+	svc := &slowKindService{}
+	for i := 0; i < 4*graphListConcurrency; i++ {
+		svc.xrds = append(svc.xrds, map[string]interface{}{
+			"spec": map[string]interface{}{
+				"group":    "load.example.org",
+				"names":    map[string]interface{}{"kind": fmt.Sprintf("Kind%d", i), "plural": fmt.Sprintf("kind%ds", i)},
+				"versions": []interface{}{map[string]interface{}{"name": "v1", "served": true, "referenceable": true}},
+			},
+		})
+	}
+	if _, err := GetGraph(svc, "ctx", GraphOptions{}); err != nil {
+		t.Fatalf("GetGraph: %v", err)
+	}
+	if peak := svc.peak.Load(); peak < 2 || peak > graphListConcurrency {
+		t.Errorf("expected between 2 and %d lists at once, got %d", graphListConcurrency, peak)
 	}
 }
