@@ -25,6 +25,7 @@ import { indexGraph, getLineage, pickHighlightId } from '../utils/graph/graphLin
 import { layoutGraph } from '../utils/graph/graphLayout.js';
 import { NODE_TYPES, NODE_TYPE_LABELS, nodeLabel } from '../utils/graph/graphModel.js';
 import { NODE_TYPE_COLORS } from '../components/graph/graphEdgeStyles.js';
+import { GRAPH_CANVAS_CSS, GRAPH_HIGHLIGHT_CSS } from '../components/graph/graphCanvasStyles.js';
 
 const CANVAS_HEIGHT_VH = 72;
 const NOTHING_DRAWN = { nodes: [], edges: [] };
@@ -143,7 +144,7 @@ export const Graph = () => {
       )}
       {!showStatus && <Box mb={3}><GraphNotices notices={notices} /></Box>}
 
-      <Box className={lineage ? 'graph-highlighting' : ''} h={`${CANVAS_HEIGHT_VH}vh`} border="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.700' }} borderRadius="md">
+      <Box css={lineage ? GRAPH_HIGHLIGHT_CSS : GRAPH_CANVAS_CSS} h={`${CANVAS_HEIGHT_VH}vh`} border="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.700' }} borderRadius="md">
         {blocked && <GraphBlocked count={budget.count} onUseDefaults={() => updateFilters({ limits: DEFAULT_LIMITS })} />}
         {!blocked && visible.nodes.length === 0 && <Text p={6} color="gray.500">No resources match the current filters.</Text>}
         {!blocked && visible.nodes.length > 0 && (

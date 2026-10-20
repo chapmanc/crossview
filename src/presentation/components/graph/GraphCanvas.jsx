@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { ReactFlow, ReactFlowProvider, Background, Controls, useReactFlow, useStore } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import './graph.css';
 import PropTypes from 'prop-types';
 import { GraphNode } from './GraphNode.jsx';
 import { GraphEdge } from './GraphEdge.jsx';

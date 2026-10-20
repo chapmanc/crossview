@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Box, HStack, Text, Button, SimpleGrid } from '@chakra-ui/react';
+import { Box, HStack, Text, Button, SimpleGrid, Slider } from '@chakra-ui/react';
 import { MdWarning, MdInfo, MdExpandMore, MdExpandLess, MdAdd, MdRemove } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import { useAppContext } from '../../providers/AppProvider.jsx';
@@ -31,8 +31,8 @@ const sliderShape = PropTypes.shape({
 const useDeferredIndex = (committedIndex, stepCount, applyIndex) => {
   const [draft, setDraft] = useState(null);
   const index = draft ?? committedIndex;
-  const finish = () => {
-    if (draft !== null) applyIndex(draft);
+  const commit = (next) => {
+    applyIndex(next);
     setDraft(null);
   };
 
@@ -41,7 +41,7 @@ const useDeferredIndex = (committedIndex, stepCount, applyIndex) => {
     previewing: draft !== null,
     onInput: setDraft,
     onStep: (delta) => applyIndex(stepIndexAfter(index, delta, stepCount)),
-    onDragEnd: finish,
+    onCommit: commit,
   };
 };
 
@@ -60,7 +60,6 @@ const LimitSlider = ({ slider, onChange }) => {
     if (steps[next] !== slider.limit) onChange(slider.type, steps[next]);
   });
   const limit = steps[control.index];
-  const fill = steps.length > 1 ? (control.index / (steps.length - 1)) * 100 : 100;
   return (
     <Box minW={0}>
       <HStack gap={2} minW={0}>
@@ -69,21 +68,28 @@ const LimitSlider = ({ slider, onChange }) => {
       </HStack>
       <HStack gap={1}>
         <StepButton label={`Show fewer ${slider.label}`} onClick={() => control.onStep(-1)} disabled={control.index === 0}><MdRemove size={16} /></StepButton>
-        <input
-          className="graph-slider"
-          type="range"
+        <Slider.Root
+          flex="1"
+          minW={0}
+          size="sm"
           min={0}
           max={steps.length - 1}
           step={1}
-          value={control.index}
-          onChange={(event) => control.onInput(Number(event.target.value))}
-          onKeyUp={control.onDragEnd}
-          onPointerUp={control.onDragEnd}
-          onPointerCancel={control.onDragEnd}
-          aria-label={`Show up to ${formatCount(limit)} ${slider.label}`}
+          value={[control.index]}
+          onValueChange={({ value }) => control.onInput(value[0])}
+          onValueChangeEnd={({ value }) => control.onCommit(value[0])}
+          aria-label={[`Show up to ${formatCount(limit)} ${slider.label}`]}
           title={`Show up to ${formatCount(limit)}`}
-          style={{ '--color': slider.color, '--fill': `${fill}%` }}
-        />
+        >
+          <Slider.Control>
+            <Slider.Track>
+              <Slider.Range bg={slider.color} />
+            </Slider.Track>
+            <Slider.Thumb index={0} bg="white" borderColor={slider.color} borderWidth="2px">
+              <Slider.HiddenInput />
+            </Slider.Thumb>
+          </Slider.Control>
+        </Slider.Root>
         <StepButton label={`Show more ${slider.label}`} onClick={() => control.onStep(1)} disabled={control.index === steps.length - 1}><MdAdd size={16} /></StepButton>
       </HStack>
       <Text fontSize="xs" color={control.previewing ? slider.color : 'gray.500'} whiteSpace="nowrap">
