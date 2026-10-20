@@ -652,6 +652,7 @@ func TestKubernetesController_GetGraph_Error(t *testing.T) {
 	logger := setupTestLogger()
 	mockService := setupMockKubernetesService()
 
+	mockService.GetCurrentContextFunc = func() string { return "test-context" }
 	mockService.GetResourcesFunc = func(apiVersion, kind, namespace, contextName, plural string, limit *int64, continueToken string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("boom")
 	}
@@ -672,6 +673,7 @@ func TestKubernetesController_GetGraph_IncludeManaged(t *testing.T) {
 	for query, wantCalled := range map[string]bool{"": true, "?includeManaged=true": true, "?includeManaged=false": false} {
 		router := setupTestRouter()
 		mockService := setupMockKubernetesService()
+		mockService.GetCurrentContextFunc = func() string { return "test-context" }
 		called := false
 		mockService.GetManagedResourcesFunc = func(contextName string, forceRefresh bool) (map[string]interface{}, error) {
 			called = true
@@ -691,5 +693,47 @@ func TestKubernetesController_GetGraph_IncludeManaged(t *testing.T) {
 		if called != wantCalled {
 			t.Errorf("%q: expected managed list called=%v, got %v", query, wantCalled, called)
 		}
+	}
+}
+
+func TestKubernetesController_GetGraph_UsesCurrentContext(t *testing.T) {
+	router := setupTestRouter()
+	mockService := setupMockKubernetesService()
+	mockService.GetCurrentContextFunc = func() string { return "current-context" }
+	var listedWith string
+	mockService.GetResourcesFunc = func(apiVersion, kind, namespace, contextName, plural string, limit *int64, continueToken string) (map[string]interface{}, error) {
+		listedWith = contextName
+		return map[string]interface{}{"items": []interface{}{}}, nil
+	}
+
+	controller := NewKubernetesController(setupTestLogger(), mockService)
+	router.GET("/api/graph", controller.GetGraph)
+
+	req, _ := http.NewRequest("GET", "/api/graph", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status code %d, got %d", http.StatusOK, w.Code)
+	}
+	if listedWith != "current-context" {
+		t.Errorf("Expected the current context to be used, got %q", listedWith)
+	}
+}
+
+func TestKubernetesController_GetGraph_NoContext(t *testing.T) {
+	router := setupTestRouter()
+	mockService := setupMockKubernetesService()
+	mockService.GetCurrentContextFunc = func() string { return "" }
+
+	controller := NewKubernetesController(setupTestLogger(), mockService)
+	router.GET("/api/graph", controller.GetGraph)
+
+	req, _ := http.NewRequest("GET", "/api/graph", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
 	}
 }
