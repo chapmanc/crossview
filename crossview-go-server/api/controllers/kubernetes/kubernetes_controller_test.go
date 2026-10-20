@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -666,6 +667,9 @@ func TestKubernetesController_GetGraph_Error(t *testing.T) {
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	if strings.Contains(w.Body.String(), "boom") {
+		t.Errorf("Expected the internal error to stay out of the response, got %s", w.Body.String())
 	}
 }
 

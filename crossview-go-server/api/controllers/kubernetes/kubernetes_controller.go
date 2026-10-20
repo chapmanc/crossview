@@ -252,7 +252,7 @@ func (c *KubernetesController) GetGraph(ctx *gin.Context) {
 	graph, err := services.GetGraph(c.kubernetesService, contextName, opts)
 	if err != nil {
 		c.logger.Errorf("Failed to build graph: %s", err.Error())
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to build graph"})
 		return
 	}
 
