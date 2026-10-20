@@ -51,8 +51,8 @@ GraphError.propTypes = { message: PropTypes.string.isRequired };
 
 export const Graph = () => {
   const { kubernetesRepository, selectedContext, colorMode } = useAppContext();
-  const { graph, loading, error } = useGraphData(kubernetesRepository, selectedContext);
   const { filters, updateFilters, clearFilters } = useGraphFilters();
+  const { graph, healthLoaded, loading, refreshing, error } = useGraphData(kubernetesRepository, selectedContext, filters.health !== '');
   const selection = useGraphSelection();
   const [hoveredId, onHover] = useDebouncedHover();
 
@@ -110,6 +110,8 @@ export const Graph = () => {
         <Text fontSize="2xl" fontWeight="bold">Graph</Text>
         <Text fontSize="sm" color="gray.500">
           {visible.nodes.length} of {graph.nodes.length} nodes, {visible.edges.length} edges
+          {refreshing && ' · Loading health...'}
+          {!refreshing && !healthLoaded && ' · Health of Composed Resources not loaded'}
         </Text>
       </HStack>
 
@@ -132,11 +134,11 @@ export const Graph = () => {
           alerts={summarizeAlerts(summary, notices)}
           hintText={result.limited ? describeLimitHint() : null}
           sliders={sliders}
-          attention={describeAttention(summary, filters.unhealthyOnly)}
+          attention={describeAttention(summary, filters.health === 'unhealthy')}
           notices={notices}
           defaultOpen={blocked}
           onLimitChange={(type, value) => updateFilters({ limits: { ...filters.limits, [type]: value } })}
-          onShowUnhealthy={() => updateFilters({ unhealthyOnly: true })}
+          onShowUnhealthy={() => updateFilters({ health: 'unhealthy' })}
         />
       )}
       {!showStatus && <Box mb={3}><GraphNotices notices={notices} /></Box>}

@@ -23,7 +23,7 @@ export class IKubernetesRepository {
     throw new Error('getResource must be implemented');
   }
 
-  async getGraph(context = null) {
+  async getGraph(context = null, options = {}) {
     throw new Error('getGraph must be implemented');
   }
 

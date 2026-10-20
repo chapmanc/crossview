@@ -6,13 +6,15 @@ export const DEFAULT_GRAPH_FILTERS = {
   namespace: '',
   kind: '',
   search: '',
-  unhealthyOnly: false,
+  health: '',
   focus: '',
   limits: DEFAULT_LIMITS,
 };
 
 // Each text filter and its URL parameter, so parsing and writing cannot drift apart.
 const TEXT_PARAMS = { namespace: 'ns', kind: 'kind', search: 'q', focus: 'focus' };
+
+export const HEALTH_FILTERS = ['healthy', 'unhealthy'];
 
 const LIMIT_PARAMS = {
   [NODE_TYPE.XRD]: 'maxXrd',
@@ -32,7 +34,7 @@ export const parseGraphFilters = (params) => {
   Object.entries(TEXT_PARAMS).forEach(([key, param]) => {
     filters[key] = params.get(param) || '';
   });
-  filters.unhealthyOnly = params.get('unhealthy') === '1';
+  filters.health = HEALTH_FILTERS.includes(params.get('health')) ? params.get('health') : '';
   filters.limits = Object.fromEntries(
     Object.entries(LIMIT_PARAMS).map(([type, param]) => [type, parseLimit(params.get(param), DEFAULT_LIMITS[type])])
   );
@@ -47,7 +49,7 @@ export const serializeGraphFilters = (filters) => {
   Object.entries(TEXT_PARAMS).forEach(([key, param]) => {
     if (filters[key]) params.set(param, filters[key]);
   });
-  if (filters.unhealthyOnly) params.set('unhealthy', '1');
+  if (filters.health) params.set('health', filters.health);
   Object.entries(LIMIT_PARAMS).forEach(([type, param]) => {
     if (filters.limits[type] !== DEFAULT_LIMITS[type]) params.set(param, String(filters.limits[type]));
   });

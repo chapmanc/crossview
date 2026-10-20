@@ -65,6 +65,8 @@ export const kindTitle = (node) => {
 
 export const isUnhealthy = (node) => node.ready === 'False' || node.synced === 'False';
 
+export const isHealthy = (node) => node.ready === 'True' && !isUnhealthy(node);
+
 export const formatCount = (n) => n.toLocaleString('en-US');
 
 export const noun = (count, singular) => `${singular}${count === 1 ? '' : 's'}`;

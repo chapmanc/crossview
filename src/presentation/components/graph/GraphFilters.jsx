@@ -125,6 +125,9 @@ export const GraphFilters = ({ filters, typeCounts, namespaces, kinds, focusLabe
     onChange({ types });
   };
 
+  // Picking the one already on turns it off.
+  const toggleHealth = (health) => onChange({ health: filters.health === health ? '' : health });
+
   return (
     <Box border="1px solid" borderColor={borderColor} borderRadius="md" px={4} mb={3}>
       <Section label="Show" borderColor={borderColor} first>
@@ -142,8 +145,11 @@ export const GraphFilters = ({ filters, typeCounts, namespaces, kinds, focusLabe
         />
         <Dropdown options={withAllOption('All kinds', kinds)} value={filters.kind} onChange={(kind) => onChange({ kind })} minW="360px" />
         <Dropdown options={namespaceOptions} value={filters.namespace} onChange={(namespace) => onChange({ namespace })} minW="180px" />
-        <Toggle color={getHealthColor('warning')} active={filters.unhealthyOnly} onClick={() => onChange({ unhealthyOnly: !filters.unhealthyOnly })}>
-          Unhealthy only
+        <Toggle color={getHealthColor('healthy')} active={filters.health === 'healthy'} onClick={() => toggleHealth('healthy')}>
+          Show Healthy
+        </Toggle>
+        <Toggle color={getHealthColor('warning')} active={filters.health === 'unhealthy'} onClick={() => toggleHealth('unhealthy')}>
+          Show Unhealthy
         </Toggle>
       </Section>
 

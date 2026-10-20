@@ -19,7 +19,7 @@ export const graphFiltersShape = PropTypes.shape({
   namespace: PropTypes.string.isRequired,
   kind: PropTypes.string.isRequired,
   search: PropTypes.string.isRequired,
-  unhealthyOnly: PropTypes.bool.isRequired,
+  health: PropTypes.oneOf(['', 'healthy', 'unhealthy']).isRequired,
   focus: PropTypes.string.isRequired,
   limits: PropTypes.objectOf(PropTypes.number).isRequired,
 });

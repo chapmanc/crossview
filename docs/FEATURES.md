@@ -46,7 +46,7 @@ Filters apply instantly in the browser and are kept in the URL, so a filtered vi
 
 - Toggle each node type, for example hide Composed Resources to leave only XRDs, Compositions and Composite Resources
 - Namespace and API group / kind pick lists, and text search
-- Unhealthy only (`Ready` or `Synced` is `False`)
+- Show Healthy (`Ready` is `True`) or Show Unhealthy (`Ready` or `Synced` is `False`). The page first loads without the managed resource list, which is the slowest part, so Composed Resources have no health yet. Either button loads it, and `GET /api/graph?includeManaged=false` is the call without it.
 - Focus on the selected node to hide everything outside its chain: what it depends on and everything built from it
 
 Large clusters: the graph limits how many of each type it draws, so it stays readable and clickable. The defaults are 25 XRDs, 25 Compositions, 25 Functions, 15 Composite Resources and 45 Composed Resources. When a type is limited, the page shows the unhealthy ones first, then an even spread across kinds, and for each Composite Resource shown, its own Composed Resources. Namespace, kind, name search and Focus narrow what the limits choose from.

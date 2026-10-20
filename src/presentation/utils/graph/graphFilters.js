@@ -1,4 +1,4 @@
-import { NODE_TYPE, EDGE_TYPE, getNodeGroup, getKindKey, isUnhealthy } from './graphModel.js';
+import { NODE_TYPE, EDGE_TYPE, getNodeGroup, getKindKey, isHealthy, isUnhealthy } from './graphModel.js';
 import { getLineage, indexGraph } from './graphLineage.js';
 
 const isInstance = (node) => node.type === NODE_TYPE.XR || node.type === NODE_TYPE.COMPOSED;
@@ -17,14 +17,16 @@ const focusOnLineage = (view, focusId) => {
   return keepOnly(view, (n) => lineage.has(n.id));
 };
 
-const createAttributeMatcher = ({ namespace, kind, search, unhealthyOnly }) => {
+const HEALTH_MATCHERS = { healthy: isHealthy, unhealthy: isUnhealthy };
+
+const createAttributeMatcher = ({ namespace, kind, search, health }) => {
   const needle = search.toLowerCase();
   const matchesSearch = (n) => [n.name, n.kind, n.namespace].some((v) => (v || '').toLowerCase().includes(needle));
   return (node) =>
     (!namespace || !node.namespace || node.namespace === namespace) &&
     (!kind || getKindKey(node) === kind) &&
     (!search || matchesSearch(node)) &&
-    (!unhealthyOnly || isUnhealthy(node));
+    (!health || HEALTH_MATCHERS[health](node));
 };
 
 // With a namespace picked, XRDs, Compositions and Functions stay only if they lead to an instance in view.
