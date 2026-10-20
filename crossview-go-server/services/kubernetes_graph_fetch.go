@@ -16,11 +16,17 @@ const (
 	GraphWarningManagedFailed   = "managed-unavailable"
 	GraphWarningManagedCached   = "managed-cached"
 	GraphWarningManagedCapped   = "managed-capped"
+	GraphWarningManagedSkipped  = "managed-skipped"
 )
+
+// GraphOptions tunes what GetGraph fetches; the zero value fetches everything.
+type GraphOptions struct {
+	SkipManaged bool
+}
 
 // GetGraph lists the Crossplane objects with a handful of calls and builds the graph.
 // Anything it could not list or only partly listed becomes a warning on the graph.
-func GetGraph(svc KubernetesServiceInterface, contextName string) (Graph, error) {
+func GetGraph(svc KubernetesServiceInterface, contextName string, opts GraphOptions) (Graph, error) {
 	lister := graphLister{svc: svc, contextName: contextName}
 
 	var in GraphInput
@@ -38,9 +44,16 @@ func GetGraph(svc KubernetesServiceInterface, contextName string) (Graph, error)
 	var warnings []GraphWarning
 	in.XRs, warnings = lister.listXRs(in.XRDs)
 
-	managedItems, managedWarnings := lister.listManaged()
-	in.Managed = managedItems
-	warnings = append(warnings, managedWarnings...)
+	if opts.SkipManaged {
+		warnings = append(warnings, GraphWarning{
+			Code:    GraphWarningManagedSkipped,
+			Message: "Composed Resource health was not loaded.",
+		})
+	} else {
+		managedItems, managedWarnings := lister.listManaged()
+		in.Managed = managedItems
+		warnings = append(warnings, managedWarnings...)
+	}
 
 	graph := BuildGraph(in)
 	graph.Warnings = sortedWarnings(warnings)

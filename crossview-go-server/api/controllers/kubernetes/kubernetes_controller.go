@@ -237,8 +237,10 @@ func (c *KubernetesController) GetManagedResources(ctx *gin.Context) {
 }
 
 // GetGraph returns the dependency graph of Crossplane resources for the requested context.
+// Passing includeManaged=false skips the managed resource list, the slowest part.
 func (c *KubernetesController) GetGraph(ctx *gin.Context) {
-	graph, err := services.GetGraph(c.kubernetesService, ctx.Query("context"))
+	opts := services.GraphOptions{SkipManaged: ctx.Query("includeManaged") == "false"}
+	graph, err := services.GetGraph(c.kubernetesService, ctx.Query("context"), opts)
 	if err != nil {
 		c.logger.Errorf("Failed to build graph: %s", err.Error())
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

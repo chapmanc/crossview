@@ -69,7 +69,7 @@ func (f *fakeGraphService) GetManagedResources(contextName string, forceRefresh 
 
 func TestGetGraph_FetchesEachXRKindOnce(t *testing.T) {
 	svc := &fakeGraphService{t: t, xrCalls: map[string]string{}}
-	g, err := GetGraph(svc, "ctx")
+	g, err := GetGraph(svc, "ctx", GraphOptions{})
 	if err != nil {
 		t.Fatalf("GetGraph: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestGetGraph_FetchesEachXRKindOnce(t *testing.T) {
 func TestGetGraph_ListErrorsFail(t *testing.T) {
 	for _, kind := range []string{"CompositeResourceDefinition", "Composition", "Function"} {
 		svc := &fakeGraphService{t: t, xrCalls: map[string]string{}, failKind: kind}
-		if _, err := GetGraph(svc, "ctx"); err == nil {
+		if _, err := GetGraph(svc, "ctx", GraphOptions{}); err == nil {
 			t.Errorf("expected an error when listing %s fails", kind)
 		}
 	}
@@ -124,7 +124,7 @@ func TestGraphXRDVersion(t *testing.T) {
 }
 
 func TestGetGraph_NoWarningsWhenEverythingLists(t *testing.T) {
-	g, err := GetGraph(&fakeGraphService{t: t, xrCalls: map[string]string{}}, "ctx")
+	g, err := GetGraph(&fakeGraphService{t: t, xrCalls: map[string]string{}}, "ctx", GraphOptions{})
 	if err != nil {
 		t.Fatalf("GetGraph: %v", err)
 	}
@@ -139,7 +139,7 @@ func TestGetGraph_NoWarningsWhenEverythingLists(t *testing.T) {
 
 func TestGetGraph_WarnsWhenAnXRKindCannotBeListed(t *testing.T) {
 	svc := &fakeGraphService{t: t, xrCalls: map[string]string{}, failKind: "AuthProxy"}
-	g, err := GetGraph(svc, "ctx")
+	g, err := GetGraph(svc, "ctx", GraphOptions{})
 	if err != nil {
 		t.Fatalf("a failing XR kind must not fail the whole graph: %v", err)
 	}
@@ -156,7 +156,7 @@ func TestGetGraph_WarnsWhenAnXRKindCannotBeListed(t *testing.T) {
 
 func TestGetGraph_WarnsWhenManagedListFails(t *testing.T) {
 	svc := &fakeGraphService{t: t, xrCalls: map[string]string{}, managedErr: errors.New("forbidden")}
-	g, err := GetGraph(svc, "ctx")
+	g, err := GetGraph(svc, "ctx", GraphOptions{})
 	if err != nil {
 		t.Fatalf("a failing managed list must not fail the graph: %v", err)
 	}
@@ -170,7 +170,7 @@ func TestGetGraph_WarnsWhenManagedListFails(t *testing.T) {
 
 func TestGetGraph_WarnsWhenManagedHealthIsCached(t *testing.T) {
 	svc := &fakeGraphService{t: t, xrCalls: map[string]string{}, managedFromCache: true}
-	g, _ := GetGraph(svc, "ctx")
+	g, _ := GetGraph(svc, "ctx", GraphOptions{})
 	if got := warningCodes(g); len(got) != 1 || got[0] != GraphWarningManagedCached {
 		t.Errorf("expected one %s warning, got %v", GraphWarningManagedCached, g.Warnings)
 	}
@@ -178,7 +178,7 @@ func TestGetGraph_WarnsWhenManagedHealthIsCached(t *testing.T) {
 
 func TestGetGraph_WarnsWhenAManagedKindHitsTheCap(t *testing.T) {
 	svc := &fakeGraphService{t: t, xrCalls: map[string]string{}, managedFiller: int(lib.DefaultManagedMaxItemsPerType)}
-	g, _ := GetGraph(svc, "ctx")
+	g, _ := GetGraph(svc, "ctx", GraphOptions{})
 	if got := warningCodes(g); len(got) != 1 || got[0] != GraphWarningManagedCapped {
 		t.Fatalf("expected one %s warning, got %v", GraphWarningManagedCapped, g.Warnings)
 	}
@@ -189,9 +189,20 @@ func TestGetGraph_WarnsWhenAManagedKindHitsTheCap(t *testing.T) {
 
 func TestGetGraph_WarningsAreSorted(t *testing.T) {
 	svc := &fakeGraphService{t: t, xrCalls: map[string]string{}, failKind: "AuthProxy", managedFromCache: true}
-	g, _ := GetGraph(svc, "ctx")
+	g, _ := GetGraph(svc, "ctx", GraphOptions{})
 	codes := warningCodes(g)
 	if !sort.StringsAreSorted(codes) || len(codes) != 2 {
 		t.Errorf("expected two warnings in code order, got %v", codes)
+	}
+}
+
+func TestGetGraph_SkipManagedDoesNotListThem(t *testing.T) {
+	svc := &fakeGraphService{t: t, xrCalls: map[string]string{}, managedErr: fmt.Errorf("must not be called")}
+	g, err := GetGraph(svc, "ctx", GraphOptions{SkipManaged: true})
+	if err != nil {
+		t.Fatalf("GetGraph: %v", err)
+	}
+	if codes := warningCodes(g); len(codes) != 1 || codes[0] != GraphWarningManagedSkipped {
+		t.Errorf("expected only the skipped warning, got %v", codes)
 	}
 }

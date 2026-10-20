@@ -667,3 +667,29 @@ func TestKubernetesController_GetGraph_Error(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
 	}
 }
+
+func TestKubernetesController_GetGraph_IncludeManaged(t *testing.T) {
+	for query, wantCalled := range map[string]bool{"": true, "?includeManaged=true": true, "?includeManaged=false": false} {
+		router := setupTestRouter()
+		mockService := setupMockKubernetesService()
+		called := false
+		mockService.GetManagedResourcesFunc = func(contextName string, forceRefresh bool) (map[string]interface{}, error) {
+			called = true
+			return map[string]interface{}{"items": []interface{}{}}, nil
+		}
+
+		controller := NewKubernetesController(setupTestLogger(), mockService)
+		router.GET("/api/graph", controller.GetGraph)
+
+		req, _ := http.NewRequest("GET", "/api/graph"+query, nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("%q: expected status %d, got %d", query, http.StatusOK, w.Code)
+		}
+		if called != wantCalled {
+			t.Errorf("%q: expected managed list called=%v, got %v", query, wantCalled, called)
+		}
+	}
+}

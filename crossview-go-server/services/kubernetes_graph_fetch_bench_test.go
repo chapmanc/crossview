@@ -56,7 +56,7 @@ func BenchmarkGetGraph(b *testing.B) {
 			var g Graph
 			for i := 0; i < b.N; i++ {
 				var err error
-				if g, err = GetGraph(svc, "ctx"); err != nil {
+				if g, err = GetGraph(svc, "ctx", GraphOptions{}); err != nil {
 					b.Fatal(err)
 				}
 			}
