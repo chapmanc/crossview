@@ -1,6 +1,10 @@
 package services
 
-import "testing"
+import (
+	"testing"
+
+	"crossview-go-server/lib"
+)
 
 // bulkGraphService answers GetGraph's list calls from prebuilt objects.
 // Each call returns copies, as a real API does, because GetGraph writes to what it lists.
@@ -42,6 +46,8 @@ func (s *bulkGraphService) GetResources(apiVersion, kind, namespace, contextName
 	}
 	return listResult(s.xrKind[kind]), nil
 }
+
+func (s *bulkGraphService) ManagedMaxItemsPerType() int64 { return lib.DefaultManagedMaxItemsPerType }
 
 func (s *bulkGraphService) GetManagedResources(contextName string, forceRefresh bool) (map[string]interface{}, error) {
 	return listResult(s.in.Managed), nil

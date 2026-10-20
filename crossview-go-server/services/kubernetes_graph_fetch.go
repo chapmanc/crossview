@@ -6,8 +6,6 @@ import (
 	"strings"
 	"sync"
 
-	"crossview-go-server/lib"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -110,25 +108,26 @@ func (l graphLister) listManaged() ([]map[string]interface{}, []GraphWarning) {
 			Message: "Composed Resource health comes from a cache and may be a few minutes old.",
 		})
 	}
-	if kinds := kindsAtItemCap(items); len(kinds) > 0 {
+	maxItems := l.svc.ManagedMaxItemsPerType()
+	if kinds := kindsAtItemCap(items, maxItems); len(kinds) > 0 {
 		warnings = append(warnings, GraphWarning{
 			Code: GraphWarningManagedCapped,
 			Message: fmt.Sprintf("These kinds hit the %d item limit, so some of their Composed Resources have no health: %s.",
-				lib.DefaultManagedMaxItemsPerType, joinSorted(kinds)),
+				maxItems, joinSorted(kinds)),
 		})
 	}
 	return items, warnings
 }
 
 // kindsAtItemCap returns the kinds that have as many managed resources as the per-kind cap allows.
-func kindsAtItemCap(items []map[string]interface{}) []string {
+func kindsAtItemCap(items []map[string]interface{}, maxItems int64) []string {
 	perKind := map[string]int{}
 	for _, item := range items {
 		perKind[graphString(item, "kind")]++
 	}
 	var capped []string
 	for kind, count := range perKind {
-		if int64(count) >= lib.DefaultManagedMaxItemsPerType {
+		if int64(count) >= maxItems {
 			capped = append(capped, kind)
 		}
 	}

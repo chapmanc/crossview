@@ -23,7 +23,15 @@ type fakeGraphService struct {
 
 	managedErr       error
 	managedFromCache bool
-	managedFiller    int // extra managed resources of one kind, to reach the per-kind cap
+	managedFiller    int   // extra managed resources of one kind, to reach the per-kind cap
+	managedCap       int64 // the configured per-kind cap; 0 means the default
+}
+
+func (f *fakeGraphService) ManagedMaxItemsPerType() int64 {
+	if f.managedCap > 0 {
+		return f.managedCap
+	}
+	return lib.DefaultManagedMaxItemsPerType
 }
 
 func (f *fakeGraphService) GetResources(apiVersion, kind, namespace, contextName, plural string, limit *int64, continueToken string) (map[string]interface{}, error) {
@@ -189,6 +197,17 @@ func TestGetGraph_WarnsWhenAManagedKindHitsTheCap(t *testing.T) {
 	}
 }
 
+func TestGetGraph_CapWarningUsesTheConfiguredCap(t *testing.T) {
+	svc := &fakeGraphService{t: t, xrCalls: map[string]string{}, managedCap: 7, managedFiller: 7}
+	g, _ := GetGraph(svc, "ctx", GraphOptions{})
+	if got := warningCodes(g); len(got) != 1 || got[0] != GraphWarningManagedCapped {
+		t.Fatalf("expected one %s warning, got %v", GraphWarningManagedCapped, g.Warnings)
+	}
+	if !strings.Contains(g.Warnings[0].Message, "7 item limit") {
+		t.Errorf("the warning should state the configured cap, got %q", g.Warnings[0].Message)
+	}
+}
+
 func TestGetGraph_WarningsAreSorted(t *testing.T) {
 	svc := &fakeGraphService{t: t, xrCalls: map[string]string{}, failKind: "AuthProxy", managedFromCache: true}
 	g, _ := GetGraph(svc, "ctx", GraphOptions{})
@@ -230,6 +249,8 @@ func (s *slowKindService) GetResources(apiVersion, kind, namespace, contextName,
 	time.Sleep(5 * time.Millisecond)
 	return listResult(nil), nil
 }
+
+func (s *slowKindService) ManagedMaxItemsPerType() int64 { return lib.DefaultManagedMaxItemsPerType }
 
 func (s *slowKindService) GetManagedResources(contextName string, forceRefresh bool) (map[string]interface{}, error) {
 	return listResult(nil), nil
