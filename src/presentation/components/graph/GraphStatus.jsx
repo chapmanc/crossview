@@ -3,13 +3,14 @@ import { Box, HStack, Text, Button, SimpleGrid, Slider } from '@chakra-ui/react'
 import { MdWarning, MdInfo, MdExpandMore, MdExpandLess, MdAdd, MdRemove } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import { useAppContext } from '../../providers/AppProvider.jsx';
-import { getBorderColor } from '../../utils/theme.js';
+import { getBorderColor, getAccentColor } from '../../utils/theme.js';
 import { getHealthColor } from '../common/ResourceRelations/utils.js';
 import { formatCount } from '../../utils/graph/graphModel.js';
 import { stepsFor, stepIndexAfter } from '../../utils/graph/graphLimits.js';
+import { useMutedColor } from './useMutedColor.js';
 
 const MAX_NOTICES_SHOWN = 3;
-const INFO_COLOR = '#3182CE';
+const INFO_COLOR = getAccentColor('blue');
 
 const noticeShape = PropTypes.shape({
   id: PropTypes.string.isRequired,
@@ -55,6 +56,7 @@ StepButton.propTypes = { label: PropTypes.string.isRequired, onClick: PropTypes.
 
 // One slider per type. It moves through a short list of values, which spreads small numbers out.
 const LimitSlider = ({ slider, onChange }) => {
+  const muted = useMutedColor();
   const steps = stepsFor(slider.matched, slider.limit);
   const control = useDeferredIndex(steps.indexOf(slider.limit), steps.length, (next) => {
     if (steps[next] !== slider.limit) onChange(slider.type, steps[next]);
@@ -92,7 +94,7 @@ const LimitSlider = ({ slider, onChange }) => {
         </Slider.Root>
         <StepButton label={`Show more ${slider.label}`} onClick={() => control.onStep(1)} disabled={control.index === steps.length - 1}><MdAdd size={16} /></StepButton>
       </HStack>
-      <Text fontSize="xs" color={control.previewing ? slider.color : 'gray.500'} whiteSpace="nowrap">
+      <Text fontSize="xs" color={control.previewing ? slider.color : muted} whiteSpace="nowrap">
         {control.previewing ? `Show up to ${formatCount(limit)}` : `${formatCount(slider.shown)} of ${formatCount(slider.matched)} shown`}
       </Text>
     </Box>
@@ -119,12 +121,13 @@ const BODY_ID = 'graph-status-body';
 // It starts closed, unless the graph could not be drawn. Closed it is one line: what is shown and a warning if that is not everything. Open, it has the
 // sliders to change that, the resources that need attention, and notices about the data.
 export const GraphNotices = ({ notices }) => {
+  const muted = useMutedColor();
   if (notices.length === 0) return null;
   return (
     <Box mt={2}>
       {notices.slice(0, MAX_NOTICES_SHOWN).map((notice) => <Notice key={notice.id} notice={notice} />)}
       {notices.length > MAX_NOTICES_SHOWN && (
-        <Text fontSize="xs" color="gray.500" mt={1}>and {notices.length - MAX_NOTICES_SHOWN} more notices</Text>
+        <Text fontSize="xs" color={muted} mt={1}>and {notices.length - MAX_NOTICES_SHOWN} more notices</Text>
       )}
     </Box>
   );
@@ -134,6 +137,7 @@ GraphNotices.propTypes = { notices: PropTypes.arrayOf(noticeShape).isRequired };
 
 export const GraphStatus = ({ headline, alerts, hintText, sliders, attention, notices, defaultOpen, onLimitChange, onShowUnhealthy }) => {
   const { colorMode } = useAppContext();
+  const muted = useMutedColor();
   const [open, setOpen] = useState(defaultOpen);
   const warn = headline.warn || notices.length > 0;
   const Chevron = open ? MdExpandLess : MdExpandMore;
@@ -154,8 +158,8 @@ export const GraphStatus = ({ headline, alerts, hintText, sliders, attention, no
       >
         {warn ? <MdWarning size={18} color={getHealthColor('warning')} style={{ flexShrink: 0 }} /> : <MdInfo size={18} color={INFO_COLOR} style={{ flexShrink: 0 }} />}
         <Text fontSize="sm" fontWeight="medium" flex="1" minW={0} noOfLines={1} title={headline.text}>{headline.text}</Text>
-        {alerts.length > 0 && <Text fontSize="xs" color="gray.500" whiteSpace="nowrap">{alerts.join(' · ')}</Text>}
-        <HStack gap={1} flexShrink={0} color="gray.500">
+        {alerts.length > 0 && <Text fontSize="xs" color={muted} whiteSpace="nowrap">{alerts.join(' · ')}</Text>}
+        <HStack gap={1} flexShrink={0} color={muted}>
           <Text fontSize="xs">{open ? 'Hide' : 'Adjust'}</Text>
           <Chevron size={20} />
         </HStack>
@@ -163,7 +167,7 @@ export const GraphStatus = ({ headline, alerts, hintText, sliders, attention, no
 
       {open && (
         <Box id={BODY_ID} px={4} pb={3}>
-          {hintText && <Text fontSize="sm" color="gray.500">{hintText}</Text>}
+          {hintText && <Text fontSize="sm" color={muted}>{hintText}</Text>}
 
           {sliders.length > 0 && (
             <SimpleGrid columns={{ base: 1, md: 2, xl: sliders.length }} gap={5} mt={2}>

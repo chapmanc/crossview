@@ -8,23 +8,27 @@ import { graphFiltersShape, optionShape } from './graphPropTypes.js';
 import { useAppContext } from '../../providers/AppProvider.jsx';
 import { getBorderColor, getAccentColor } from '../../utils/theme.js';
 import { getHealthColor } from '../common/ResourceRelations/utils.js';
+import { useMutedColor } from './useMutedColor.js';
 
-const Section = ({ label, children, borderColor, first }) => (
-  <HStack
-    align="center"
-    gap={4}
-    py={2}
-    borderTop={first ? 'none' : '1px solid'}
-    borderColor={borderColor}
-  >
-    <Text w="56px" flexShrink={0} fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase" letterSpacing="wide">
-      {label}
-    </Text>
-    <HStack gap={2} wrap="wrap" flex="1" minW={0}>
-      {children}
+const Section = ({ label, children, borderColor, first }) => {
+  const muted = useMutedColor();
+  return (
+    <HStack
+      align="center"
+      gap={4}
+      py={2}
+      borderTop={first ? 'none' : '1px solid'}
+      borderColor={borderColor}
+    >
+      <Text w="56px" flexShrink={0} fontSize="xs" fontWeight="semibold" color={muted} textTransform="uppercase" letterSpacing="wide">
+        {label}
+      </Text>
+      <HStack gap={2} wrap="wrap" flex="1" minW={0}>
+        {children}
+      </HStack>
     </HStack>
-  </HStack>
-);
+  );
+};
 
 Section.propTypes = {
   label: PropTypes.string.isRequired,
@@ -34,21 +38,24 @@ Section.propTypes = {
 };
 
 // On is a tinted background with a coloured border, like the active item in the sidebar.
-const Toggle = ({ color, active, onClick, children }) => (
-  <Button
-    size="sm"
-    variant="outline"
-    onClick={onClick}
-    gap={2}
-    aria-pressed={active}
-    bg={active ? `${color}1f` : 'transparent'}
-    borderColor={active ? color : undefined}
-    color={active ? undefined : 'gray.500'}
-    _hover={{ bg: `${color}33` }}
-  >
-    {children}
-  </Button>
-);
+const Toggle = ({ color, active, onClick, children }) => {
+  const muted = useMutedColor();
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={onClick}
+      gap={2}
+      aria-pressed={active}
+      bg={active ? `${color}1f` : 'transparent'}
+      borderColor={active ? color : undefined}
+      color={active ? undefined : muted}
+      _hover={{ bg: `${color}33` }}
+    >
+      {children}
+    </Button>
+  );
+};
 
 Toggle.propTypes = {
   color: PropTypes.string.isRequired,
@@ -78,6 +85,7 @@ const describeFocusState = ({ focusLabel, selectedLabel, hasFocus, selectionDiff
 };
 
 const FocusControls = ({ focusId, focusLabel, selectedId, selectedLabel, canClear, onFocus, onClear }) => {
+  const muted = useMutedColor();
   const hasFocus = Boolean(focusId);
   const hasSelection = Boolean(selectedId);
   const selectionDiffers = hasSelection && selectedId !== focusId;
@@ -96,7 +104,7 @@ const FocusControls = ({ focusId, focusLabel, selectedId, selectedLabel, canClea
       <Button size="sm" variant="outline" disabled={!canClear} onClick={onClear}>
         Clear
       </Button>
-      <Text fontSize="sm" color="gray.500" ml={2} noOfLines={1}>
+      <Text fontSize="sm" color={muted} ml={2} noOfLines={1}>
         {describeFocusState({ focusLabel, selectedLabel, hasFocus, selectionDiffers, hasSelection })}
       </Text>
     </>

@@ -2,6 +2,7 @@ import { Box, Text, HStack } from '@chakra-ui/react';
 import { useDeferredValue, useEffect, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useAppContext } from '../providers/AppProvider.jsx';
+import { getBorderColor, getTextColor } from '../utils/theme.js';
 import { ResourceDetails } from '../components/common/ResourceDetails.jsx';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { GraphCanvas } from '../components/graph/GraphCanvas.jsx';
@@ -54,6 +55,7 @@ export const Graph = () => {
   const { kubernetesRepository, selectedContext, colorMode } = useAppContext();
   const { filters, updateFilters, clearFilters } = useGraphFilters();
   const { graph, healthLoaded, loading, refreshing, error } = useGraphData(kubernetesRepository, selectedContext, filters.health !== '');
+  const muted = getTextColor(colorMode, 'secondary');
   const selection = useGraphSelection();
   const [hoveredId, onHover] = useDebouncedHover();
 
@@ -109,7 +111,7 @@ export const Graph = () => {
     <Box display="flex" flexDirection="column" position="relative">
       <HStack justify="space-between" mb={4}>
         <Text fontSize="2xl" fontWeight="bold">Graph</Text>
-        <Text fontSize="sm" color="gray.500">
+        <Text fontSize="sm" color={muted}>
           {visible.nodes.length} of {graph.nodes.length} nodes, {visible.edges.length} edges
           {refreshing && ' · Loading health...'}
           {!refreshing && !healthLoaded && ' · Health of Composed Resources not loaded'}
@@ -144,9 +146,9 @@ export const Graph = () => {
       )}
       {!showStatus && <Box mb={3}><GraphNotices notices={notices} /></Box>}
 
-      <Box css={lineage ? GRAPH_HIGHLIGHT_CSS : GRAPH_CANVAS_CSS} h={`${CANVAS_HEIGHT_VH}vh`} border="1px solid" borderColor="gray.200" _dark={{ borderColor: 'gray.700' }} borderRadius="md">
+      <Box css={lineage ? GRAPH_HIGHLIGHT_CSS : GRAPH_CANVAS_CSS} h={`${CANVAS_HEIGHT_VH}vh`} border="1px solid" borderColor={getBorderColor(colorMode)} borderRadius="md">
         {blocked && <GraphBlocked count={budget.count} onUseDefaults={() => updateFilters({ limits: DEFAULT_LIMITS })} />}
-        {!blocked && visible.nodes.length === 0 && <Text p={6} color="gray.500">No resources match the current filters.</Text>}
+        {!blocked && visible.nodes.length === 0 && <Text p={6} color={muted}>No resources match the current filters.</Text>}
         {!blocked && visible.nodes.length > 0 && (
           <GraphHighlightContext.Provider value={highlightStore}>
             <GraphCanvas
