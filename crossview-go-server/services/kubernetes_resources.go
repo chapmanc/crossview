@@ -169,7 +169,7 @@ func (k *KubernetesService) GetResource(apiVersion, kind, name, namespace, conte
 		return nil, err
 	}
 	if apiVersion == "v1" && kind == "Secret" {
-		redactSecret(resource)
+		return secretMetadataOnly(resource), nil
 	}
 	return resource, nil
 }
