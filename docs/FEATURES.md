@@ -68,7 +68,7 @@ Click a node to open the usual resource details below the graph.
 Limitations:
 - The page is read-only; it has no edit or write actions.
 - Soft dependencies are not shown. Crossplane does not record on an XR that a Composition reads another XR's status through function requirements, or uses a Secret name or URL, so nothing in the API says so.
-- Composed resources that are not Crossplane managed resources (for example a ConfigMap) appear with a dashed yellow border and no readiness, because only the reference is known.
+- Composed resources that are not Crossplane managed resources (for example a Deployment or ConfigMap) have no readiness, because only managed resources report it. Their Composite Resource's `Ready` covers them.
 - A reference without a namespace is looked up in the XR's namespace, then cluster-scoped.
 
 ### 🔐 Security & Access

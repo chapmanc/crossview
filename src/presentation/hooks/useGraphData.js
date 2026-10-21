@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { GetGraphUseCase } from '../../domain/usecases/GetGraphUseCase.js';
-import { withoutSkippedStubs } from '../utils/graph/graphHealth.js';
+import { withoutComposedStubs } from '../utils/graph/graphHealth.js';
 
 const EMPTY_GRAPH = { nodes: [], edges: [], warnings: [] };
 
@@ -56,7 +56,7 @@ export const useGraphData = (kubernetesRepository, selectedContext, wantHealth) 
     };
   }, [selectedContext, kubernetesRepository, includeHealth]);
 
-  const graph = useMemo(() => (healthLoaded ? raw : withoutSkippedStubs(raw)), [raw, healthLoaded]);
+  const graph = useMemo(() => withoutComposedStubs(raw, healthLoaded), [raw, healthLoaded]);
 
   return { graph, healthLoaded, loading, refreshing, error };
 };
