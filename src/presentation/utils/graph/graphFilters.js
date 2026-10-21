@@ -26,7 +26,14 @@ const createAttributeMatcher = ({ namespace, kind, search, health }) => {
     (!namespace || !node.namespace || node.namespace === namespace) &&
     (!kind || getKindKey(node) === kind) &&
     (!search || matchesSearch(node)) &&
-    (!health || HEALTH_MATCHERS[health](node));
+    (!health || node.type === NODE_TYPE.COMPOSITION || HEALTH_MATCHERS[health](node));
+};
+
+// A Composition has no health of its own, so after a health filter it stays only if it still leads to an XR.
+const dropCompositionsWithoutXR = (view, focusId) => {
+  const xrs = new Set(view.nodes.filter((n) => n.type === NODE_TYPE.XR).map((n) => n.id));
+  const leadsToXR = (id) => view.edges.some((e) => e.source === id && xrs.has(e.target));
+  return keepOnly(view, (n) => n.type !== NODE_TYPE.COMPOSITION || n.id === focusId || leadsToXR(n.id));
 };
 
 // With a namespace picked, XRDs, Compositions and Functions stay only if they lead to an instance in view.
@@ -60,6 +67,7 @@ export const applyGraphFilters = (graph, filters) => {
   let view = keepOnly(graph, (n) => shownTypes.has(n.type));
   view = focusOnLineage(view, filters.focus);
   view = keepOnly(view, (n) => n.id === filters.focus || matches(n));
+  if (filters.health) view = dropCompositionsWithoutXR(view, filters.focus);
   if (filters.namespace) view = keepDefinitionsLeadingToInstances(view);
   return { nodes: view.nodes, edges: hideImpliedXRDEdges(view.edges) };
 };
