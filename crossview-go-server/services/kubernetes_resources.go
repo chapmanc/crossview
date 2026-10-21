@@ -164,6 +164,17 @@ func (k *KubernetesService) GetResources(apiVersion, kind, namespace, contextNam
 }
 
 func (k *KubernetesService) GetResource(apiVersion, kind, name, namespace, contextName, plural string) (map[string]interface{}, error) {
+	resource, err := k.getResource(apiVersion, kind, name, namespace, contextName, plural)
+	if err != nil {
+		return nil, err
+	}
+	if apiVersion == "v1" && kind == "Secret" {
+		redactSecret(resource)
+	}
+	return resource, nil
+}
+
+func (k *KubernetesService) getResource(apiVersion, kind, name, namespace, contextName, plural string) (map[string]interface{}, error) {
 	if contextName != "" {
 		if err := k.SetContext(contextName); err != nil {
 			return nil, fmt.Errorf("failed to set context: %w", err)
