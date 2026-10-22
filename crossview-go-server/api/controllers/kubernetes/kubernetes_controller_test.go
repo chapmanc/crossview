@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -600,6 +601,144 @@ func TestKubernetesController_GetManagedResources_Error(t *testing.T) {
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+}
+
+func TestKubernetesController_GetGraph_Success(t *testing.T) {
+	router := setupTestRouter()
+	logger := setupTestLogger()
+	mockService := setupMockKubernetesService()
+
+	mockService.GetResourcesFunc = func(apiVersion, kind, namespace, contextName, plural string, limit *int64, continueToken string) (map[string]interface{}, error) {
+		if kind == "Composition" {
+			return map[string]interface{}{"items": []interface{}{
+				map[string]interface{}{
+					"apiVersion": "apiextensions.crossplane.io/v1",
+					"kind":       "Composition",
+					"metadata":   map[string]interface{}{"name": "web"},
+				},
+			}}, nil
+		}
+		return map[string]interface{}{"items": []interface{}{}}, nil
+	}
+
+	controller := NewKubernetesController(logger, mockService)
+	router.GET("/api/graph", controller.GetGraph)
+
+	req, _ := http.NewRequest("GET", "/api/graph?context=test-context", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status code %d, got %d", http.StatusOK, w.Code)
+	}
+
+	var body struct {
+		Nodes []map[string]interface{} `json:"nodes"`
+		Edges []map[string]interface{} `json:"edges"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("Failed to parse response: %v", err)
+	}
+	if len(body.Nodes) != 1 || body.Nodes[0]["id"] != "composition/web" {
+		t.Errorf("Expected a single composition node, got %v", body.Nodes)
+	}
+	if body.Edges == nil {
+		t.Error("Expected edges to be an empty array, not null")
+	}
+}
+
+func TestKubernetesController_GetGraph_Error(t *testing.T) {
+	router := setupTestRouter()
+	logger := setupTestLogger()
+	mockService := setupMockKubernetesService()
+
+	mockService.GetCurrentContextFunc = func() string { return "test-context" }
+	mockService.GetResourcesFunc = func(apiVersion, kind, namespace, contextName, plural string, limit *int64, continueToken string) (map[string]interface{}, error) {
+		return nil, fmt.Errorf("boom")
+	}
+
+	controller := NewKubernetesController(logger, mockService)
+	router.GET("/api/graph", controller.GetGraph)
+
+	req, _ := http.NewRequest("GET", "/api/graph", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
+	}
+	if strings.Contains(w.Body.String(), "boom") {
+		t.Errorf("Expected the internal error to stay out of the response, got %s", w.Body.String())
+	}
+}
+
+func TestKubernetesController_GetGraph_IncludeManaged(t *testing.T) {
+	for query, wantCalled := range map[string]bool{"": true, "?includeManaged=true": true, "?includeManaged=false": false} {
+		router := setupTestRouter()
+		mockService := setupMockKubernetesService()
+		mockService.GetCurrentContextFunc = func() string { return "test-context" }
+		called := false
+		mockService.GetManagedResourcesFunc = func(contextName string, forceRefresh bool) (map[string]interface{}, error) {
+			called = true
+			return map[string]interface{}{"items": []interface{}{}}, nil
+		}
+
+		controller := NewKubernetesController(setupTestLogger(), mockService)
+		router.GET("/api/graph", controller.GetGraph)
+
+		req, _ := http.NewRequest("GET", "/api/graph"+query, nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("%q: expected status %d, got %d", query, http.StatusOK, w.Code)
+		}
+		if called != wantCalled {
+			t.Errorf("%q: expected managed list called=%v, got %v", query, wantCalled, called)
+		}
+	}
+}
+
+func TestKubernetesController_GetGraph_UsesCurrentContext(t *testing.T) {
+	router := setupTestRouter()
+	mockService := setupMockKubernetesService()
+	mockService.GetCurrentContextFunc = func() string { return "current-context" }
+	var listedWith string
+	mockService.GetResourcesFunc = func(apiVersion, kind, namespace, contextName, plural string, limit *int64, continueToken string) (map[string]interface{}, error) {
+		listedWith = contextName
+		return map[string]interface{}{"items": []interface{}{}}, nil
+	}
+
+	controller := NewKubernetesController(setupTestLogger(), mockService)
+	router.GET("/api/graph", controller.GetGraph)
+
+	req, _ := http.NewRequest("GET", "/api/graph", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status code %d, got %d", http.StatusOK, w.Code)
+	}
+	if listedWith != "current-context" {
+		t.Errorf("Expected the current context to be used, got %q", listedWith)
+	}
+}
+
+func TestKubernetesController_GetGraph_NoContext(t *testing.T) {
+	router := setupTestRouter()
+	mockService := setupMockKubernetesService()
+	mockService.GetCurrentContextFunc = func() string { return "" }
+
+	controller := NewKubernetesController(setupTestLogger(), mockService)
+	router.GET("/api/graph", controller.GetGraph)
+
+	req, _ := http.NewRequest("GET", "/api/graph", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code %d, got %d", http.StatusBadRequest, w.Code)
 	}
 }
 
