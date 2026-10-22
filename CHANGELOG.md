@@ -1,3 +1,24 @@
+# [4.7.0-rc.4](https://github.com/crossplane-contrib/crossview/compare/v4.7.0-rc.3...v4.7.0-rc.4) (2026-10-22)
+
+
+### Features
+
+* **graph:** add Crossplane dependency graph page with XRD→Composition→Function→XR→Composed Resource topology, live filtering, smart limits, render budget, URL-state sharing, and ResourceRelations-consistent styling ([#315](https://github.com/crossplane-contrib/crossview/pull/315))
+* **resources:** add server-side paging for managed resources with configurable limits and continuation tokens ([#308](https://github.com/crossplane-contrib/crossview/pull/308))
+* **secrets:** return metadata only for v1/Secret resources (no data/stringData/key names) for security ([#316](https://github.com/crossplane-contrib/crossview/pull/316))
+
+
+### Bug Fixes
+
+* **graph:** fix composed resource status flagging, keep Compositions in health filters, align node/edge styles with ResourceRelations tab
+* **api:** cap parallel XR kind listing at 8 concurrent requests, validate context parameter, sanitize error responses, use configured managed item cap
+
+
+### Performance Improvements
+
+* **graph:** add benchmarks for 1k/10k/100k node graphs, parallel XR fetching with warnings for unavailable kinds
+* **managed resources:** configurable page size, per-type item cap, cache TTL
+
 # [4.7.0-rc.3](https://github.com/crossplane-contrib/crossview/compare/v4.7.0-rc.2...v4.7.0-rc.3) (2026-10-04)
 
 
