@@ -112,6 +112,10 @@ func (m MockKubernetesService) GetManagedResources(contextName string, forceRefr
 	return map[string]interface{}{"items": []interface{}{}}, nil
 }
 
+func (m MockKubernetesService) ManagedMaxItemsPerType() int64 {
+	return lib.DefaultManagedMaxItemsPerType
+}
+
 func (m MockKubernetesService) GetManagedResourcesPaged(contextName string, forceRefresh bool, opts *services.ManagedResourcesOptions) (map[string]interface{}, error) {
 	if m.GetManagedResourcesPagedFunc != nil {
 		return m.GetManagedResourcesPagedFunc(contextName, forceRefresh, opts)

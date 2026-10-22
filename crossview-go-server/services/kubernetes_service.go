@@ -29,6 +29,7 @@ type KubernetesServiceInterface interface {
 	GetEvents(kind, name, namespace, contextName string) ([]map[string]interface{}, error)
 	GetManagedResources(contextName string, forceRefresh bool) (map[string]interface{}, error)
 	GetManagedResourcesPaged(contextName string, forceRefresh bool, opts *ManagedResourcesOptions) (map[string]interface{}, error)
+	ManagedMaxItemsPerType() int64
 }
 
 type KubernetesService struct {
@@ -159,6 +160,14 @@ func (k *KubernetesService) ClearFailedContext(ctxName string) {
 	}
 	
 	delete(k.failedContexts, targetContext)
+}
+
+// ManagedMaxItemsPerType is how many managed resources of one kind are listed, as configured.
+func (k *KubernetesService) ManagedMaxItemsPerType() int64 {
+	if k.managedMaxItemsPerType <= 0 {
+		return lib.DefaultManagedMaxItemsPerType
+	}
+	return k.managedMaxItemsPerType
 }
 
 func (k *KubernetesService) ClearManagedResourcesCache(contextName string) {
