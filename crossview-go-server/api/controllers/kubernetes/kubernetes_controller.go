@@ -176,6 +176,10 @@ func (c *KubernetesController) GetResource(ctx *gin.Context) {
 		return
 	}
 
+	if apiVersion == "v1" && kind == "Secret" {
+		resource = services.SecretMetadataOnly(resource)
+	}
+
 	ctx.JSON(http.StatusOK, resource)
 }
 

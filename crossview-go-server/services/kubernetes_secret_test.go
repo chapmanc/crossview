@@ -20,7 +20,7 @@ func TestSecretMetadataOnly_KeepsOnlyMetadata(t *testing.T) {
 		},
 	}
 
-	got := secretMetadataOnly(secret)
+	got := SecretMetadataOnly(secret)
 
 	for _, field := range []string{"data", "stringData"} {
 		if _, found := got[field]; found {
@@ -39,7 +39,7 @@ func TestSecretMetadataOnly_KeepsOnlyMetadata(t *testing.T) {
 }
 
 func TestSecretMetadataOnly_UnknownFieldsAreDropped(t *testing.T) {
-	got := secretMetadataOnly(map[string]interface{}{"somethingNew": "value", "metadata": map[string]interface{}{"name": "a", "extra": "x"}})
+	got := SecretMetadataOnly(map[string]interface{}{"somethingNew": "value", "metadata": map[string]interface{}{"name": "a", "extra": "x"}})
 	if _, found := got["somethingNew"]; found {
 		t.Errorf("unknown top-level field leaked: %v", got)
 	}
@@ -49,7 +49,7 @@ func TestSecretMetadataOnly_UnknownFieldsAreDropped(t *testing.T) {
 }
 
 func TestSecretMetadataOnly_EmptyIsFine(t *testing.T) {
-	if got := secretMetadataOnly(map[string]interface{}{}); len(got) != 0 {
+	if got := SecretMetadataOnly(map[string]interface{}{}); len(got) != 0 {
 		t.Errorf("expected an empty result, got %v", got)
 	}
 }

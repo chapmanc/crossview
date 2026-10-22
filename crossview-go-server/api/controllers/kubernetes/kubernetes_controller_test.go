@@ -602,3 +602,70 @@ func TestKubernetesController_GetManagedResources_Error(t *testing.T) {
 		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, w.Code)
 	}
 }
+
+func getResourceBody(t *testing.T, query string, resource map[string]interface{}) map[string]interface{} {
+	t.Helper()
+	router := setupTestRouter()
+	mockService := setupMockKubernetesService()
+	mockService.GetResourceFunc = func(apiVersion, kind, name, namespace, contextName, plural string) (map[string]interface{}, error) {
+		return resource, nil
+	}
+	controller := NewKubernetesController(setupTestLogger(), mockService)
+	router.GET("/api/resource", controller.GetResource)
+
+	req, _ := http.NewRequest("GET", "/api/resource?"+query, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status code %d, got %d", http.StatusOK, w.Code)
+	}
+	var body map[string]interface{}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("Expected a JSON body: %v", err)
+	}
+	return body
+}
+
+func TestKubernetesController_GetResource_SecretReturnsMetadataOnly(t *testing.T) {
+	body := getResourceBody(t, "apiVersion=v1&kind=Secret&name=oidc&namespace=auth", map[string]interface{}{
+		"apiVersion": "v1",
+		"kind":       "Secret",
+		"type":       "Opaque",
+		"data":       map[string]interface{}{"client-secret": "c2VjcmV0"},
+		"stringData": map[string]interface{}{"token": "plain"},
+		"metadata": map[string]interface{}{
+			"name":          "oidc",
+			"namespace":     "auth",
+			"annotations":   map[string]interface{}{"kubectl.kubernetes.io/last-applied-configuration": "{}"},
+			"managedFields": []interface{}{"f:data"},
+		},
+	})
+
+	for _, field := range []string{"data", "stringData"} {
+		if _, found := body[field]; found {
+			t.Errorf("%s must not be returned, got %v", field, body)
+		}
+	}
+	meta := body["metadata"].(map[string]interface{})
+	for _, field := range []string{"annotations", "managedFields"} {
+		if _, found := meta[field]; found {
+			t.Errorf("metadata.%s must not be returned, got %v", field, meta)
+		}
+	}
+	if body["kind"] != "Secret" || body["type"] != "Opaque" || meta["name"] != "oidc" || meta["namespace"] != "auth" {
+		t.Errorf("Expected kind, type, name and namespace kept, got %v", body)
+	}
+}
+
+func TestKubernetesController_GetResource_OtherKindsAreUnchanged(t *testing.T) {
+	body := getResourceBody(t, "apiVersion=v1&kind=ConfigMap&name=cfg&namespace=auth", map[string]interface{}{
+		"kind": "ConfigMap",
+		"data": map[string]interface{}{"key": "value"},
+	})
+
+	data, ok := body["data"].(map[string]interface{})
+	if !ok || data["key"] != "value" {
+		t.Errorf("Expected a ConfigMap to keep its data, got %v", body)
+	}
+}

@@ -2,7 +2,7 @@ package services
 
 // A Secret is returned as metadata only, with no values, key names or annotations.
 // It lists what is allowed, so a field nobody thought of can never leak.
-func secretMetadataOnly(secret map[string]interface{}) map[string]interface{} {
+func SecretMetadataOnly(secret map[string]interface{}) map[string]interface{} {
 	safe := map[string]interface{}{}
 	for _, field := range []string{"apiVersion", "kind", "type"} {
 		if value, ok := secret[field]; ok {
