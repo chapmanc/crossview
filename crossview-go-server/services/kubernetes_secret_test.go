@@ -53,3 +53,71 @@ func TestSecretMetadataOnly_EmptyIsFine(t *testing.T) {
 		t.Errorf("expected an empty result, got %v", got)
 	}
 }
+
+func TestIsSecret_AnySpellingOfTheCoreSecret(t *testing.T) {
+	cases := []struct {
+		apiVersion, kind, plural string
+		want                     bool
+	}{
+		{"v1", "Secret", "", true},
+		{"v1", "secret", "", true},
+		{"/v1", "Secret", "", true},
+		{" v1 ", "Secret", "", true},
+		{"v1", "Anything", "secrets", true},
+		{"/v1", "Anything", "Secrets", true},
+		{"v1", "ConfigMap", "configmaps", false},
+		{"apps/v1", "Secret", "", false},
+		{"example.org/v1", "Secret", "secrets", false},
+	}
+	for _, c := range cases {
+		if got := IsSecret(c.apiVersion, c.kind, c.plural); got != c.want {
+			t.Errorf("IsSecret(%q, %q, %q) = %v, want %v", c.apiVersion, c.kind, c.plural, got, c.want)
+		}
+	}
+}
+
+func TestSecretAsMetadata_ByRequestOrByObject(t *testing.T) {
+	withData := func() map[string]interface{} {
+		return map[string]interface{}{"data": map[string]interface{}{"k": "v"}, "metadata": map[string]interface{}{"name": "s"}}
+	}
+
+	byRequest := SecretAsMetadata(withData(), "/v1", "Foo", "secrets")
+	if _, found := byRequest["data"]; found {
+		t.Errorf("a Secret named by the request must lose its data, got %v", byRequest)
+	}
+	if byRequest["kind"] != "Secret" || byRequest["apiVersion"] != "v1" {
+		t.Errorf("kind and apiVersion are set from the request, got %v", byRequest)
+	}
+
+	byObject := withData()
+	byObject["apiVersion"], byObject["kind"] = "v1", "Secret"
+	if _, found := SecretAsMetadata(byObject, "example.org/v1", "Foo", "foos")["data"]; found {
+		t.Error("an object that says it is a Secret must lose its data")
+	}
+
+	other := map[string]interface{}{"kind": "ConfigMap", "data": map[string]interface{}{"k": "v"}}
+	if _, found := SecretAsMetadata(other, "v1", "ConfigMap", "configmaps")["data"]; !found {
+		t.Error("a ConfigMap must keep its data")
+	}
+}
+
+func TestSecretListAsMetadata_EveryItem(t *testing.T) {
+	result := map[string]interface{}{"items": []interface{}{
+		map[string]interface{}{"data": map[string]interface{}{"a": "1"}, "metadata": map[string]interface{}{"name": "one"}},
+		map[string]interface{}{"data": map[string]interface{}{"b": "2"}, "metadata": map[string]interface{}{"name": "two"}},
+	}, "continueToken": nil}
+
+	got := SecretListAsMetadata(result, "v1", "Secret", "")
+
+	for _, item := range got["items"].([]interface{}) {
+		if _, found := item.(map[string]interface{})["data"]; found {
+			t.Errorf("every listed Secret must lose its data, got %v", item)
+		}
+	}
+	if _, ok := got["continueToken"]; !ok {
+		t.Error("the rest of the list result must stay")
+	}
+	if SecretListAsMetadata(map[string]interface{}{}, "v1", "Secret", "") == nil {
+		t.Error("a result with no items must come back unchanged")
+	}
+}

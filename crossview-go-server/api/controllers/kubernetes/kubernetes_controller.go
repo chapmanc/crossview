@@ -132,7 +132,7 @@ func (c *KubernetesController) GetResources(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, result)
+	ctx.JSON(http.StatusOK, services.SecretListAsMetadata(result, apiVersion, kind, plural))
 }
 
 func parseInt64(s string) (int64, error) {
@@ -176,11 +176,7 @@ func (c *KubernetesController) GetResource(ctx *gin.Context) {
 		return
 	}
 
-	if apiVersion == "v1" && kind == "Secret" {
-		resource = services.SecretMetadataOnly(resource)
-	}
-
-	ctx.JSON(http.StatusOK, resource)
+	ctx.JSON(http.StatusOK, services.SecretAsMetadata(resource, apiVersion, kind, plural))
 }
 
 func (c *KubernetesController) GetEvents(ctx *gin.Context) {
