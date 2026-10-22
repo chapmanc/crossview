@@ -57,7 +57,7 @@ The page warns when more than 5,000 nodes would be drawn, because they can take 
 
 A graph taller than the screen opens at a readable size, showing the top. Open the panel to see warnings about the data itself: a kind that could not be listed, Composed Resource health that comes from a cache or hit the 5,000 per kind limit, resources that are referenced but have an unknown status, and Composite Resources with no Composition.
 
-A node's outline follows its type. A warning icon marks a node whose `Ready` or `Synced` is `False`, or whose `Ready` is `Unknown`; hover it to see which.
+A node's border follows its type. A red border marks a node whose `Ready` or `Synced` is `False`, and an orange border one whose `Ready` is `Unknown`; hover the node to see which.
 
 A Composite Resource that has no Composition shows a red "No Composition" tag. Crossplane writes the chosen Composition onto every XR it reconciles, so this means the XR is brand new or Crossplane could not select one; check its `Synced` condition.
 

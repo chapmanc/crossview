@@ -6,7 +6,7 @@ export const NODE_TYPE_COLORS = {
   [NODE_TYPE.XRD]: colors.accent.purple.medium,
   [NODE_TYPE.COMPOSITION]: colors.accent.blue.primary,
   [NODE_TYPE.XR]: colors.status.green,
-  [NODE_TYPE.FUNCTION]: colors.accent.coral.primary,
+  [NODE_TYPE.FUNCTION]: colors.accent.yellow.primary,
   [NODE_TYPE.COMPOSED]: colors.accent.cyan.primary,
 };
 

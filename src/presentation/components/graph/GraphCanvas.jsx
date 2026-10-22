@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { ReactFlow, ReactFlowProvider, Background, Controls, useReactFlow, useStore } from '@xyflow/react';
+import { ReactFlow, ReactFlowProvider, Background, BackgroundVariant, Controls, useReactFlow, useStore } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import PropTypes from 'prop-types';
+import { colors } from '../../utils/theme.js';
 import { GraphNode } from './GraphNode.jsx';
 import { GraphEdge } from './GraphEdge.jsx';
 import { MIN_ZOOM, READABLE_ZOOM } from '../../utils/graph/graphLayout.js';
@@ -63,7 +64,7 @@ export const GraphCanvas = ({ nodes, edges, colorMode, fitKey, onNodeClick, onNo
       zoomActivationKeyCode={['Meta', 'Control']}
     >
       <FitOnChange fitKey={fitKey} />
-      <Background />
+      <Background variant={BackgroundVariant.Dots} gap={16} size={1} color={colorMode === 'dark' ? colors.border.dark.gray : colors.border.light.gray} />
       <Controls showInteractive={false} />
     </ReactFlow>
   </ReactFlowProvider>
